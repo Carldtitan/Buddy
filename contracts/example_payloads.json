@@ -1,0 +1,40 @@
+{
+  "create_check": {
+    "place": {
+      "query": "Demo Cafe near REDACTED San Francisco",
+      "phone": "+15555555555"
+    },
+    "needs": {
+      "step_free_entrance": true,
+      "accessible_restroom": true,
+      "wheelchair_seating_or_path": true,
+      "avoid_temporary_blockers": true
+    }
+  },
+  "final_report_shape": {
+    "status": "yellow",
+    "summary": "Entrance is confirmed, seating is possible, but restroom availability is a risk.",
+    "recommendation": "Reasonable for pickup or a short visit. Risky for a long stay if restroom access is required.",
+    "confirmed_facts": [
+      "Step-free entrance confirmed by phone"
+    ],
+    "risks": [
+      "Accessible/customer restroom was not confirmed"
+    ],
+    "unknowns": [],
+    "evidence": [],
+    "voice_conversation_summary": "Buddy asked three accessibility confirmation questions and the venue answered them.",
+    "voice_transcript": [
+      {
+        "speaker": "buddy",
+        "text": "Hi, I am checking accessibility before someone visits today."
+      },
+      {
+        "speaker": "venue",
+        "text": "Sure, I can answer."
+      }
+    ],
+    "confidence": 0.74,
+    "expires_at": "2026-07-01T14:41:00-07:00"
+  }
+}

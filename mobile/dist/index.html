@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Buddy</title>
+    <style>
+      :root {
+        --bg: #0d0f14;
+        --panel: #161922;
+        --panel-soft: #1c2130;
+        --line: #31384a;
+        --text: #e9edf3;
+        --muted: #a1aabc;
+        --ok: #5fd39a;
+        --warn: #e0c15c;
+        --bad: #e06f64;
+        --accent: #f4d35e;
+        --accent-2: #4bb8a8;
+        --accent-3: #d86fa8;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 12% 8%, rgba(75,184,168,.18), transparent 24%),
+          radial-gradient(circle at 88% 6%, rgba(216,111,168,.15), transparent 22%),
+          radial-gradient(circle at 92% 92%, rgba(244,211,94,.12), transparent 24%),
+          var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        font-family: 'Inter', 'Manrope', 'Segoe UI', Arial, sans-serif;
+      }
+      button, input, textarea {
+        font: inherit;
+      }
+      .hidden {
+        display: none !important;
+      }
+      .app {
+        max-width: 1180px;
+        margin: 0 auto;
+        min-height: 100vh;
+        padding: 14px;
+        display: grid;
+        gap: 12px;
+      }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .brand h1 {
+        margin: 0;
+        font-size: 1.2rem;
+      }
+      .brand p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .tabs {
+        display: flex;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        overflow: hidden;
+        background: rgba(255,255,255,.03);
+      }
+      .tab {
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+      .tab.active {
+        background: linear-gradient(135deg, rgba(75,184,168,.35), rgba(244,211,94,.30));
+        color: var(--text);
+      }
+      .page-wrap {
+        min-height: 0;
+      }
+      .page {
+        display: none;
+      }
+      .page.active { display: block; }
+
+      .check-layout {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 12px;
+      }
+      .panel {
+        background:
+          linear-gradient(180deg, rgba(255,255,255,.03), transparent 28%),
+          linear-gradient(180deg, var(--panel), var(--panel-soft));
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        box-shadow: 0 20px 50px rgba(0,0,0,.26);
+      }
+      .left {
+        padding: 12px;
+        display: grid;
+        gap: 12px;
+        grid-template-rows: auto auto 1fr;
+      }
+      .map {
+        border-radius: 10px;
+        height: 190px;
+        background:
+          radial-gradient(circle at 25% 30%, rgba(75,184,168,.2), transparent 26%),
+          radial-gradient(circle at 78% 26%, rgba(216,111,168,.18), transparent 24%),
+          linear-gradient(135deg, rgba(255,255,255,.08), transparent 60%),
+          linear-gradient(180deg, #232836, #171b22);
+        position: relative;
+        overflow: hidden;
+      }
+      .district {
+        position: absolute;
+        border: 1px solid rgba(255,255,255,.22);
+        background: rgba(255,255,255,.08);
+        border-radius: 7px;
+      }
+      .d1 { left: 18px; top: 24px; width: 146px; height: 74px; }
+      .d2 { right: 20px; top: 58px; width: 96px; height: 90px; }
+      .d3 { left: 82px; bottom: 28px; width: 160px; height: 78px; }
+      .pin {
+        position: absolute;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, var(--accent), var(--accent-3));
+        color: #13151b;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        box-shadow: 0 8px 24px rgba(0,0,0,.28);
+      }
+      label {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: .3px;
+      }
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+      .control {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: #11141a;
+        color: var(--text);
+        padding: 10px 11px;
+      }
+      textarea.control {
+        min-height: 72px;
+        resize: vertical;
+      }
+      .run {
+        border: 0;
+        height: 42px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--accent), #ffd98a);
+        color: #12151a;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 10px 24px rgba(244,211,94,.14);
+      }
+      .run:disabled {
+        opacity: .65;
+        cursor: wait;
+      }
+      .status-pill {
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        padding: 4px 9px;
+        font-size: 11px;
+        width: fit-content;
+        background: rgba(255,255,255,.03);
+      }
+      .ok { color: var(--ok); border-color: rgba(82,214,167,.45); }
+      .warn { color: var(--warn); border-color: rgba(238,201,93,.45); }
+      .bad { color: var(--bad); border-color: rgba(255,125,111,.45); }
+      .unknown { color: var(--muted); border-color: #414b60; }
+      .right {
+        padding: 12px;
+        display: grid;
+        gap: 12px;
+      }
+      .chat-shell {
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background:
+          linear-gradient(180deg, rgba(75,184,168,.06), transparent 30%),
+          #11151a;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        min-height: 300px;
+      }
+      .chat-head {
+        border-bottom: 1px solid var(--line);
+        padding: 10px;
+        font-size: 13px;
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+      }
+      .chat {
+        padding: 10px;
+        overflow: auto;
+        display: grid;
+        gap: 8px;
+      }
+      .bubble {
+        max-width: 82%;
+        padding: 9px 11px;
+        border-radius: 11px;
+        font-size: 14px;
+        line-height: 1.35;
+      }
+      .bubble.user {
+        justify-self: end;
+        background: linear-gradient(135deg, rgba(75,184,168,.26), rgba(75,184,168,.12));
+        color: #eff3f8;
+      }
+      .bubble.bot {
+        justify-self: start;
+        border: 1px solid rgba(244,211,94,.16);
+        background: linear-gradient(135deg, rgba(244,211,94,.09), rgba(216,111,168,.05));
+      }
+      .composer {
+        border-top: 1px solid var(--line);
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+      }
+      .composer input {
+        border: 1px solid var(--line);
+        background: #0f1217;
+        color: var(--text);
+        border-radius: 10px;
+        padding: 10px;
+      }
+      .composer button {
+        border: 0;
+        background: linear-gradient(135deg, var(--accent-2), var(--accent-3));
+        color: #111318;
+        border-radius: 10px;
+        padding: 10px;
+        font-weight: 600;
+      }
+      .summary-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 12px;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        padding: 12px;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,.02), transparent 36%),
+          #151a21;
+      }
+      .card h3 {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+      .decision {
+        font-size: 20px;
+        margin: 6px 0;
+        line-height: 1.2;
+      }
+      .mini {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .small {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .list {
+        margin: 8px 0 0;
+        list-style: none;
+        padding: 0;
+        display: grid;
+        gap: 8px;
+      }
+      .list-item {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 8px;
+        background: #1a2028;
+      }
+      .call-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .mini-btn {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 8px 10px;
+        background: linear-gradient(135deg, rgba(75,184,168,.16), rgba(216,111,168,.12));
+        color: var(--text);
+        cursor: pointer;
+      }
+      .error {
+        color: var(--bad);
+        font-size: 12px;
+        display: none;
+      }
+      .community-list {
+        display: grid;
+        gap: 8px;
+      }
+      .community-card {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        background: linear-gradient(135deg, rgba(75,184,168,.08), rgba(244,211,94,.05));
+      }
+      .community-card .meta {
+        color: var(--muted);
+        font-size: 11px;
+        display: block;
+      }
+      @media (max-width: 1020px) {
+        .check-layout,
+        .summary-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <h1>Buddy Assistant</h1>
+          <p>Real web research + optional call verification</p>
+        </div>
+        <div class="tabs">
+          <button class="tab active" data-page="check-page" id="tab-check" onclick="setPage('check-page')">Check</button>
+          <button class="tab" data-page="community-page" id="tab-community" onclick="setPage('community-page')">Community</button>
+        </div>
+      </header>
+
+      <main class="page-wrap">
+        <section id="check-page" class="page active">
+          <div class="check-layout">
+            <aside class="panel left">
+              <div class="map">
+                <div class="district d1"></div>
+                <div class="district d2"></div>
+                <div class="district d3"></div>
+                <div class="pin">⌖</div>
+              </div>
+              <div class="field">
+                <label for="query">Tell me what to check</label>
+                <textarea id="query" class="control" rows="3">Check Blue Bottle Coffee near me. I need to know if I can get in easily, move around inside, and use the restroom if needed.</textarea>
+              </div>
+              <button id="run" class="run" type="button">Run accessibility check</button>
+              <div class="small">Ask in plain English. Buddy will interpret the access needs from your message.</div>
+              <span id="status-badge" class="status-pill unknown">READY</span>
+              <div class="error" id="error"></div>
+            </aside>
+
+            <section class="panel right">
+              <div class="chat-shell">
+                <div class="chat-head">
+                  <span>Conversation</span>
+                  <span id="chat-state">Idle</span>
+                </div>
+                <div id="chat" class="chat"></div>
+                <form class="composer" id="composer">
+                  <input id="query-quick" placeholder="Need anything else checked? (optional)" />
+                  <button type="submit">Send</button>
+                </form>
+              </div>
+
+              <div class="summary-grid">
+                <article class="card">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                    <h3>Conclusion</h3>
+                    <span id="status" class="status-pill unknown">UNKNOWN</span>
+                  </div>
+                  <div id="decision" class="decision">Waiting for a check.</div>
+                  <p id="decision-reason" class="small">Run a check and Buddy will explain the result in one line.</p>
+                  <p id="recommendation" class="mini"></p>
+                  <div class="call-row" style="margin-top:8px">
+                    <button id="call-permission" class="mini-btn" type="button" disabled>Call my phone to verify</button>
+                    <span class="mini" id="transcript-count">0 turns</span>
+                  </div>
+                </article>
+                <article class="card">
+                  <h3>What I used to decide</h3>
+                  <ul id="rationale" class="list">
+                    <li class="mini">No report yet.</li>
+                  </ul>
+                </article>
+              </div>
+
+              <article class="card">
+                <h3>Top evidence</h3>
+                <ul id="evidence" class="list"><li class="mini">No evidence yet.</li></ul>
+              </article>
+            </section>
+          </div>
+        </section>
+
+        <section id="community-page" class="page">
+          <section class="panel" style="padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+              <div>
+                <h2 style="margin:0">Community</h2>
+                <div id="feed-count" class="mini" style="margin-top:2px">0 reports</div>
+              </div>
+              <button id="community-refresh" class="mini-btn" type="button">Refresh</button>
+            </div>
+            <div id="community-list" class="community-list" style="margin-top:10px">
+              <p class="mini">No community reports yet.</p>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const state = { check: null };
+
+      function esc(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;"
+        })[char]);
+      }
+
+      function setPage(pageId) {
+        const target = $(pageId);
+        if (!target) return;
+        document.querySelectorAll('.page').forEach((page) => page.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active'));
+        target.classList.add('active');
+        const tab = document.querySelector(`[data-page="${pageId}"]`);
+        if (tab) tab.classList.add('active');
+      }
+
+      async function api(path, options = {}) {
+        const response = await fetch(path, {
+          ...options,
+          headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+        });
+        if (!response.ok) throw new Error(await response.text() || `Request failed ${response.status}`);
+        return response.json();
+      }
+
+      function addMessage(sender, text) {
+        const bubble = document.createElement('div');
+        bubble.className = `bubble ${sender}`;
+        bubble.textContent = text;
+        $('chat').appendChild(bubble);
+        $('chat').scrollTop = $('chat').scrollHeight;
+      }
+
+      function setBusy(value) {
+        $('run').disabled = value;
+        $('run').textContent = value ? 'Checking...' : 'Run accessibility check';
+        $('chat-state').textContent = value ? 'Running live research...' : 'Idle';
+      }
+
+      function showError(msg) {
+        $('error').style.display = msg ? 'block' : 'none';
+        $('error').textContent = msg || '';
+      }
+
+      function statusClass(status) {
+        const value = String(status || '').toLowerCase();
+        if (value === 'green') return 'ok';
+        if (value === 'yellow') return 'warn';
+        if (value === 'red') return 'bad';
+        return 'unknown';
+      }
+
+      function extractNeedsFromPrompt(prompt) {
+        const text = String(prompt || '').toLowerCase();
+        const needs = {
+          step_free_entrance: false,
+          accessible_restroom: false,
+          wheelchair_seating_or_path: false,
+          avoid_temporary_blockers: false,
+          notes: prompt || null,
+        };
+
+        if (/wheelchair|mobility|entry|entrance|ramp|stairs|path|seating|restroom|bathroom/.test(text)) {
+          needs.step_free_entrance = true;
+          needs.accessible_restroom = true;
+          needs.wheelchair_seating_or_path = true;
+          needs.avoid_temporary_blockers = true;
+        }
+
+        if (/restroom|bathroom/.test(text)) {
+          needs.accessible_restroom = true;
+        }
+        if (/parking|entry|entrance|ramp|door|stairs/.test(text)) {
+          needs.step_free_entrance = true;
+        }
+        if (/seating|path|corridor|route|hallway/.test(text)) {
+          needs.wheelchair_seating_or_path = true;
+        }
+        if (/blocked|temporary|construction|stairs/.test(text)) {
+          needs.avoid_temporary_blockers = true;
+        }
+
+        if (!needs.step_free_entrance && !needs.accessible_restroom && !needs.wheelchair_seating_or_path) {
+          needs.step_free_entrance = true;
+          needs.accessible_restroom = true;
+          needs.wheelchair_seating_or_path = true;
+          needs.avoid_temporary_blockers = true;
+        }
+
+        return needs;
+      }
+
+      function buildUserFriendlyReason(report) {
+        const positives = (report.confirmed_facts || []).slice(0, 2);
+        const risks = (report.risks || []).slice(0, 2);
+        const unknowns = (report.unknowns || []).slice(0, 2);
+        const status = String(report.status || '').toLowerCase();
+
+        if (status === 'green') {
+          return positives.length
+            ? `It looks accessible because ${positives.join(', ')}.`
+            : 'It looks accessible based on the evidence I found.';
+        }
+        if (status === 'red') {
+          return risks.length
+            ? `It looks difficult or blocked because ${risks.join(', ')}.`
+            : 'It looks difficult or blocked based on the evidence I found.';
+        }
+        if (status === 'yellow') {
+          const pieces = [];
+          if (positives.length) pieces.push(`some access signs exist: ${positives.join(', ')}`);
+          if (unknowns.length) pieces.push(`but these are still unclear: ${unknowns.join(', ')}`);
+          return pieces.length ? `It is partly accessible because ${pieces.join('; ')}.` : 'It is only partly confirmed right now.';
+        }
+        return 'I do not have enough evidence yet to give a confident answer.';
+      }
+
+      function render(check) {
+        state.check = check;
+        const report = check.final_report || {};
+        const status = (report.status || check?.analysis?.preliminary_status || 'unknown').toLowerCase();
+        const conclusion = status === 'green'
+          ? 'Accessible'
+          : status === 'red'
+            ? 'Not accessible'
+            : status === 'yellow'
+              ? 'Partly accessible'
+              : 'Unknown';
+
+        $('status').className = `status-pill ${statusClass(status)}`;
+        $('status').textContent = status.toUpperCase();
+        $('status-badge').textContent = status.toUpperCase();
+        $('status-badge').className = `status-pill ${statusClass(status)}`;
+        $('decision').textContent = conclusion;
+        $('decision-reason').textContent = report.summary || check?.analysis?.preliminary_summary || 'Buddy is still building evidence';
+        $('recommendation').textContent = report.recommendation || 'Use a shorter plain-English request if you want a narrower answer.';
+
+        const rationale = buildUserFriendlyReason(report);
+        $('rationale').innerHTML = `<li>${esc(rationale)}</li>`;
+
+        const evidence = report.evidence || check.evidence || [];
+        if (!evidence.length) {
+          $('evidence').innerHTML = '<li class="mini">No evidence yet.</li>';
+        } else {
+          $('evidence').innerHTML = evidence
+            .slice(0, 3)
+            .map((item) => {
+              const score = Math.round((item.confidence || 0) * 100);
+              const verdict = item.polarity === 'supports_access'
+                ? 'supports'
+                : item.polarity === 'contradicts_access'
+                  ? 'concern'
+                  : 'unclear';
+              return `<li class="list-item"><strong>${esc(verdict.toUpperCase())}</strong> (${score}%): ${esc(item.claim || item.title || 'No detail')}</li>`;
+            }).join('');
+        }
+
+        const turns = (report.voice_transcript || check.call_session?.transcript || []);
+        $('transcript-count').textContent = `${turns.length} transcript turns`;
+      }
+
+      async function runCheck(event) {
+        if (event && event.preventDefault) event.preventDefault();
+        const promptText = $('query').value.trim() || $('query-quick').value.trim();
+        const quickText = $('query-quick').value.trim();
+        if (!promptText) {
+          showError('Type a place or question first.');
+          return;
+        }
+
+        if (quickText) {
+          $('query').value = `${$('query').value.trim()} ${quickText}`.trim();
+          $('query-quick').value = '';
+        }
+
+        showError('');
+        setBusy(true);
+        $('call-permission').disabled = true;
+        addMessage('user', `Check request: ${$('query').value}`);
+        addMessage('bot', 'I am running live web evidence now.');
+
+        const needs = extractNeedsFromPrompt(promptText);
+        const payload = {
+          place: { query: $('query').value },
+          needs,
+        };
+
+        try {
+          let check = await api('/checks/draft', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          render(check);
+          check = await api(`/checks/${check.id}/collect`, { method: 'POST', body: '{}' });
+          render(check);
+          await api(`/checks/${check.id}/analyze`, { method: 'POST', body: '{}' });
+          check = await api(`/checks/${check.id}/finalize`, { method: 'POST', body: '{}' });
+          render(check);
+          state.check = check;
+          addMessage('bot', check.final_report?.summary || 'Done. Ask for a call if you want confirmation.');
+          $('call-permission').disabled = false;
+          await refreshCommunity(true);
+        } catch (error) {
+          showError(error.message || 'Failed to run check.');
+          addMessage('bot', 'That check failed. Try again with a shorter business name.');
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function runCall(event) {
+        event.preventDefault();
+        if (!state.check?.id) {
+          showError('Run a check first.');
+          return;
+        }
+        if (!window.confirm('Allow Buddy to call your phone now to verify this check?')) return;
+        try {
+          const session = await api(`/checks/${state.check.id}/calls`, { method: 'POST', body: '{}' });
+          if (session?.status) {
+            addMessage('bot', `Call started (${session.status}).`);
+          }
+          const updated = await api(`/checks/${state.check.id}`);
+          render(updated);
+        } catch (error) {
+          showError(error.message || 'Could not start call.');
+          addMessage('bot', 'Call permission was not granted to run.');
+        }
+      }
+
+      async function refreshCommunity(forceMessage = false) {
+        try {
+          const reports = await api('/community-reports');
+          $('feed-count').textContent = `${reports.length} report${reports.length === 1 ? '' : 's'}`;
+          if (!reports.length) {
+            $('community-list').innerHTML = '<p class="mini">No community reports yet.</p>';
+            return;
+          }
+          $('community-list').innerHTML = reports.map((report) => `
+            <article class="community-card">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                <strong>${esc(report.place?.name || 'Place')}</strong>
+                <span class="status-pill ${statusClass(report.status || 'unknown')}">${esc((report.status || 'UNKNOWN').toUpperCase())}</span>
+              </div>
+              <p class="mini" style="margin-top:8px">${esc(report.public_summary || 'No summary yet.')}</p>
+            </article>`).join('');
+        } catch (error) {
+          if (forceMessage) showError(error.message || 'Could not refresh community reports.');
+        }
+      }
+
+      function init() {
+        addMessage('bot', 'Tell me a place in plain English and I’ll run a real accessibility check.');
+        refreshCommunity(false).catch(() => {});
+        $('run').addEventListener('click', runCheck);
+        $('composer').addEventListener('submit', runCheck);
+        $('call-permission').addEventListener('click', runCall);
+        $('community-refresh').addEventListener('click', () => refreshCommunity(true));
+        $('tab-check').addEventListener('click', () => setPage('check-page'));
+        $('tab-community').addEventListener('click', () => setPage('community-page'));
+      }
+
+      init();
+    </script>
+  </body>
+</html>

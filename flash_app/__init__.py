@@ -1,0 +1,2 @@
+"""Buddy Runpod Flash endpoints."""
+

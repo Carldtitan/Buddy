@@ -1,0 +1,11 @@
+.env
+.flash/
+mobile/.env
+.venv/
+__pycache__/
+.pytest_cache/
+node_modules/
+.expo/
+dist/
+build/
+*.pyc

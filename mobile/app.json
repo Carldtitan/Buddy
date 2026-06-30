@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Buddy",
+    "slug": "buddy-mobile",
+    "scheme": "buddy",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#F4F2EC"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.buddy.mobile"
+    },
+    "android": {
+      "package": "app.buddy.mobile"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "apiUrl": ""
+    }
+  }
+}
