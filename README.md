@@ -1,16 +1,83 @@
-# Buddy Live Access
+# Buddy
 
-Buddy is a live accessibility confirmation assistant. It resolves a venue, gathers public accessibility evidence, decides what is still unknown, optionally warms a voice agent, places a guarded confirmation call, and publishes a short report for the mobile app and community view.
+Buddy is a live accessibility assistant for the Runpod hack.
+It takes a plain-English request, finds a place, gathers public evidence, reasons about what that evidence means, optionally calls your phone for verification, and returns a short answer that is easy to scan.
 
-The shared Pydantic contracts in `contracts/` are the current source of truth while backend, mobile, Runpod, and worker implementations are being assembled. Current local development uses Bright Data SERP plus Browser API Playwright, Mapbox, Twilio, Supabase publishable/secret keys, Runpod Flash and voice worker URLs generated after deployment, and the built-in local UI renderer.
+The app is built to feel like a chat product first, with a map shown by default and community reports on a separate page.
 
-## Safety Default
+## What it does
 
-Real venue calls are disabled by default. Keep `ALLOW_REAL_VENUE_CALLS=false` in local and staging environments. In that mode, every outbound call should go to `BUDDY_TEST_PHONE_NUMBER`, even when the venue payload contains a real phone number.
+1. The user types a natural-language request like "check whether the cafe near me has accessible entry and restroom access."
+2. The backend resolves the place and gathers public evidence.
+3. Bright Data helps fetch search results and page evidence.
+4. Runpod hosts the reasoning and the voice worker so the call path can be warmed before dialing.
+5. Twilio places the call.
+6. The backend returns:
+   - a concise conclusion,
+   - a short English explanation,
+   - the transcript,
+   - a summary of the voice conversation,
+   - supporting evidence,
+   - and a community-ready report.
 
-Only enable real venue calls after Twilio webhooks, consent/call policy, rate limits, allowlists, and manual QA are complete.
+## Why this is a good use of sponsor tools
 
-## Quick Start
+This project uses the sponsor tools for real work, not for decoration:
+
+- Bright Data SERP API finds public web evidence quickly.
+- Bright Data Browser API with Playwright captures harder-to-reach pages when search snippets are not enough.
+- Runpod Flash hosts the reasoning layer that decides what evidence matters.
+- Runpod voice worker hosts STT, LLM, and TTS for the phone flow and is warmed before calls to reduce lag.
+- Twilio handles the actual phone call.
+- Supabase is the persistence layer for checks, reports, and community posts.
+- Mapbox powers place resolution and the map view.
+- The local renderer turns structured report payloads into a readable mobile UI without needing paid OpenUI.
+
+## Product shape
+
+- `Check` page: the main chat-style flow with a map, the user prompt, evidence, transcript, and result summary.
+- `Community` page: public reports, separated so the main task stays focused.
+- `Call` flow: hidden behind a confirmation step so the app only calls after the evidence is gathered.
+
+## Safety behavior
+
+Real venue calls are disabled by default.
+When `ALLOW_REAL_VENUE_CALLS=false`, Buddy dials `BUDDY_TEST_PHONE_NUMBER` instead of the venue.
+
+That means:
+
+- local testing is safe,
+- demo calling can still work,
+- and real venue calls only happen when you explicitly enable them.
+
+## Twilio setup
+
+Twilio is the part that most often trips people up.
+
+If Twilio says "upgrade to a full account" during the call, that usually means:
+
+- the account is still in trial mode, or
+- the call is going to a number that is not verified for trial usage.
+
+What you need:
+
+1. Use a real Twilio Voice-capable account.
+2. Buy or assign a Twilio phone number.
+3. Make sure the backend webhooks are public HTTPS endpoints.
+4. Make sure the voice worker websocket endpoint is public WSS.
+5. If you are still on trial, verify the destination phone number in Twilio Console.
+6. Keep `BUDDY_TEST_PHONE_NUMBER` set for safety testing.
+
+The backend should point Twilio at:
+
+- `TWILIO_VOICE_WEBHOOK_URL` for the TwiML response
+- `TWILIO_STATUS_CALLBACK_URL` for call status
+- `TWILIO_MEDIA_STREAM_WS_URL` for the Twilio Media Streams websocket
+
+If the call cuts early, check Twilio Console > Monitor > Logs > Calls first.
+That will tell you whether the failure is account policy, webhook, or stream related.
+
+## Local development
 
 ```bash
 cd /root/runpod-hack
@@ -20,7 +87,7 @@ python3 -m pip install -r buddy/backend/requirements.txt
 cp buddy/.env.example buddy/.env
 ```
 
-Run the backend API:
+Run the backend:
 
 ```bash
 cd /root/runpod-hack
@@ -28,7 +95,7 @@ source .venv/bin/activate
 PYTHONPATH=/root/runpod-hack python3 -m uvicorn buddy.backend.app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Run the voice worker locally:
+Run the voice worker:
 
 ```bash
 cd /root/runpod-hack/buddy/runpod_voice_worker
@@ -36,7 +103,7 @@ python3 -m pip install -r requirements.txt
 python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 9000
 ```
 
-Run tests and contract checks:
+Run tests:
 
 ```bash
 cd /root/runpod-hack
@@ -45,25 +112,36 @@ PYTHONPATH=/root/runpod-hack python3 -m unittest discover -s buddy/backend/tests
 PYTHONPATH=/root/runpod-hack python3 -m compileall buddy/contracts
 ```
 
-## Documentation
+## Important environment variables
 
-- [Environment setup](docs/setup.md)
-- [Architecture](docs/architecture.md)
-- [Deployment notes](docs/deploy.md)
-- [Model warmup flow](docs/model-warmup.md)
+Start with `buddy/.env.example`.
 
-## Core Flow
+The main groups are:
 
-1. Mobile app submits an `AccessCheckCreate` payload.
-2. Backend resolves the place with Mapbox.
-3. Backend gathers public evidence with Bright Data SERP and Browser API Playwright plus maps/place metadata.
-4. Reasoning service scores evidence and returns missing critical facts.
-5. If facts are missing, backend warms the Runpod voice worker.
-6. Twilio places a guarded call. Local and staging calls route to `BUDDY_TEST_PHONE_NUMBER`.
-7. Voice worker returns transcript turns and extracted facts.
-8. Backend generates a `FinalReport` and optional `CommunityReport`.
-9. The local renderer can transform `openui_payload` into React Native UI. Do not use paid OpenUI for this hack build.
+- Bright Data: `BRIGHT_DATA_API_KEY`, `BRIGHT_DATA_SERP_ZONE`, `BRIGHT_DATA_BROWSER_PLAYWRIGHT_WS_URL`
+- Mapbox: `MAPBOX_ACCESS_TOKEN`
+- Runpod: `RUNPOD_API_KEY`, `RUNPOD_FLASH_BASE_URL`, `RUNPOD_VOICE_WORKER_BASE_URL`, `RUNPOD_VOICE_WORKER_WS_URL`, `RUNPOD_VOICE_WORKER_WARMUP_URL`
+- Twilio: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_PHONE_NUMBER`, `TWILIO_VOICE_WEBHOOK_URL`, `TWILIO_STATUS_CALLBACK_URL`, `TWILIO_MEDIA_STREAM_WS_URL`
+- Supabase: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `DATABASE_URL`
+- Safety: `ALLOW_REAL_VENUE_CALLS=false`, `BUDDY_TEST_PHONE_NUMBER`
 
-## Environment Variables
+## Repo layout
 
-Start from [.env.example](.env.example). Provider-specific dashboard locations and setup notes are in [docs/setup.md](docs/setup.md).
+- `contracts/` shared request and response models
+- `backend/` API, orchestration, Bright Data integration, Twilio, storage
+- `runpod_voice_worker/` warmable STT/LLM/TTS voice service
+- `runpod_llm_worker/` lightweight Runpod reasoning worker
+- `mobile/` chat-style frontend with map and community pages
+- `flash_app/` Runpod Flash app entrypoint
+- `docs/` setup, deployment, and architecture notes
+
+## Status philosophy
+
+Buddy is designed to be useful in the real world, but the safest default is still a controlled demo path.
+That is why the app emphasizes:
+
+- natural language input,
+- concise summaries,
+- evidence instead of wall-of-text,
+- and test-number calling by default.
+
