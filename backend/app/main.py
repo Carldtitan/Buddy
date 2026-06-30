@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import asyncio
 from uuid import UUID
 from urllib.parse import parse_qs
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi import FastAPI, HTTPException, Request, Response, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+import websockets
 
 from buddy.contracts.buddy_contracts import (
     AccessCheck,
@@ -165,12 +167,18 @@ def get_community_report(report_id: UUID) -> CommunityReport:
 @app.post("/webhooks/twilio/voice")
 async def twilio_voice() -> Response:
     settings = load_settings()
-    media_stream_ws_url = setting_value(
-        settings,
-        "twilio_media_stream_ws_url",
-        "TWILIO_MEDIA_STREAM_WS_URL",
-        "RUNPOD_VOICE_WORKER_WS_URL",
-    )
+    backend_url = setting_value(settings, "backend_url", "BACKEND_URL", "PUBLIC_APP_URL")
+    if backend_url and backend_url.startswith("https://"):
+        media_stream_ws_url = f"wss://{backend_url.removeprefix('https://').rstrip('/')}/api/twilio/media"
+    elif backend_url and backend_url.startswith("http://"):
+        media_stream_ws_url = f"ws://{backend_url.removeprefix('http://').rstrip('/')}/api/twilio/media"
+    else:
+        media_stream_ws_url = setting_value(
+            settings,
+            "twilio_media_stream_ws_url",
+            "TWILIO_MEDIA_STREAM_WS_URL",
+            "RUNPOD_VOICE_WORKER_WS_URL",
+        )
     if not media_stream_ws_url:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -183,6 +191,42 @@ async def twilio_voice() -> Response:
   </Connect>
 </Response>"""
     return Response(content=twiml, media_type="application/xml")
+
+
+@app.websocket("/api/twilio/media")
+@app.websocket("/webhooks/twilio/media")
+async def twilio_media_proxy(websocket: WebSocket) -> None:
+    settings = load_settings()
+    upstream_url = setting_value(
+        settings,
+        "runpod_voice_worker_ws_url",
+        "RUNPOD_VOICE_WORKER_WS_URL",
+    )
+    if not upstream_url:
+        await websocket.close(code=status.WS_1011_INTERNAL_ERROR, reason="Voice worker websocket not configured")
+        return
+
+    await websocket.accept()
+    try:
+        async with websockets.connect(upstream_url, ping_interval=None) as upstream:
+            async def client_to_upstream() -> None:
+                while True:
+                    message = await websocket.receive_text()
+                    await upstream.send(message)
+
+            async def upstream_to_client() -> None:
+                async for message in upstream:
+                    if isinstance(message, bytes):
+                        await websocket.send_bytes(message)
+                    else:
+                        await websocket.send_text(message)
+
+            await asyncio.gather(client_to_upstream(), upstream_to_client())
+    except WebSocketDisconnect:
+        return
+    except Exception:
+        if websocket.client_state.name == "CONNECTED":
+            await websocket.close(code=status.WS_1011_INTERNAL_ERROR, reason="Voice stream proxy failed")
 
 
 @app.post("/api/twilio/status")

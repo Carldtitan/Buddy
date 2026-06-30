@@ -50,7 +50,7 @@ Fill service URLs after each deploy or tunnel is created:
 - `RUNPOD_VOICE_WORKER_WS_URL`: generated Runpod voice worker websocket URL.
 - `RUNPOD_VOICE_WORKER_HEALTH_URL`: `${RUNPOD_VOICE_WORKER_BASE_URL}/health`.
 - `RUNPOD_VOICE_WORKER_WARMUP_URL`: `${RUNPOD_VOICE_WORKER_BASE_URL}/warmup`.
-- `TWILIO_MEDIA_STREAM_WS_URL`: `${RUNPOD_VOICE_WORKER_WS_URL}/twilio-media`.
+- `TWILIO_MEDIA_STREAM_WS_URL`: `${BACKEND_URL}/api/twilio/media`.
 
 ## Twilio Webhooks
 

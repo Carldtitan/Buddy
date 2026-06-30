@@ -98,14 +98,14 @@ Variables:
 - `TWILIO_FROM_PHONE_NUMBER`: Twilio-owned number for outbound calls.
 - `TWILIO_VOICE_WEBHOOK_URL`: public URL for `POST /api/twilio/voice`.
 - `TWILIO_STATUS_CALLBACK_URL`: public URL for `POST /api/twilio/status`.
-- `TWILIO_MEDIA_STREAM_WS_URL`: websocket URL for the voice worker `/twilio-media` endpoint.
+- `TWILIO_MEDIA_STREAM_WS_URL`: public websocket URL for Buddy's backend `/api/twilio/media` proxy endpoint.
 
 For local webhook testing, expose the backend API with a tunnel such as `ngrok http 8000`, then set:
 
 - `TWILIO_VOICE_WEBHOOK_URL=https://<tunnel-host>/api/twilio/voice`
 - `TWILIO_STATUS_CALLBACK_URL=https://<tunnel-host>/api/twilio/status`
 
-If the voice worker is local, expose it with a websocket-capable tunnel and set `TWILIO_MEDIA_STREAM_WS_URL=wss://<worker-tunnel-host>/twilio-media`.
+If the voice worker is local, Buddy can still proxy through the backend, but the backend must be able to reach the worker websocket. Keep `TWILIO_MEDIA_STREAM_WS_URL` pointed at Buddy's public websocket endpoint.
 
 ## Supabase
 

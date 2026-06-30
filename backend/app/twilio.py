@@ -138,12 +138,14 @@ class TwilioCallOrchestrator:
             return
 
         headers = {}
+        warmup_url = self._settings.runpod_voice_worker_warmup_url
         if self._settings.runpod_voice_worker_auth_token:
-            headers["Authorization"] = f"Bearer {self._settings.runpod_voice_worker_auth_token}"
+            separator = "&" if "?" in warmup_url else "?"
+            warmup_url = f"{warmup_url}{separator}token={self._settings.runpod_voice_worker_auth_token}"
 
         try:
             response = post_json(
-                self._settings.runpod_voice_worker_warmup_url,
+                warmup_url,
                 {
                     "check_id": str(session.check_id),
                     "models": {
@@ -152,7 +154,6 @@ class TwilioCallOrchestrator:
                         "tts": "hexgrad/Kokoro-82M",
                     },
                 },
-                headers=headers,
                 timeout_seconds=180,
             )
             if not response.get("ready"):
